@@ -2,6 +2,7 @@
 import argparse
 import pickle
 import time
+from tqdm import tqdm
 import numpy as np
 import torch
 import torch.nn as nn
@@ -13,7 +14,7 @@ import model_rnn
 parser = argparse.ArgumentParser(description='PyTorch Wikitext-2 RNN/LSTM Language Model')
 parser.add_argument('--epochs', type=int, default=50)
 parser.add_argument('--clip', type=float, default=0.25, help='gradient clipping')
-parser.add_argument('--lr', type=float, default=0.2, help='initial learning rate')
+parser.add_argument('--lr', type=float, default=0.02, help='initial learning rate')
 parser.add_argument('--batch_size', type=int, default=1, metavar='N', help='batch size')
 parser.add_argument('--bptt', type=int, default=35, help='sequence length')
 parser.add_argument('--save', type=str,  default='model.pth', help='path to save the final model')
@@ -48,7 +49,6 @@ model = model_rnn.LSTM(len(vocab), train_data[0].shape[0]-1)
 criterion = nn.MSELoss()
 optimizer = optim.SGD(model.parameters(), args.lr)
 if args.cuda:
-   print("cuda!")
    model =  model.cuda()
 
 # Training code
@@ -72,7 +72,7 @@ def evaluate(data_source):
           data = data.cuda()
           targets = targets.cuda()
         output, hidden = model(data, hidden, cuda=args.cuda)
-        total_loss += len(data) * criterion(output, targets).data
+        total_loss += criterion(output, targets).data
         hidden = repackage_hidden(hidden)
     return total_loss[0] / len(data_source)
 
@@ -82,7 +82,7 @@ def train():
     model.train()
     start_time = time.time()
     hidden = model.init_hidden(args.cuda)
-    for i in range(train_data.size(0)):
+    for i in tqdm(range(train_data.size(0))):
         data = Variable(train_data[i][:-1])
         targets = Variable(train_data[i][1:])
         if args.cuda:
