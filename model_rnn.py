@@ -16,10 +16,12 @@ class LSTM(nn.Module):
     output = self.out(output.squeeze(1))
     return output, hidden
 
-  def forward(self, inputs, hidden=None, force=True, steps=0):
+  def forward(self, inputs, hidden=None, force=True, steps=0, cuda=False):
     if force or steps == 0:
       steps = len(inputs)
     outputs = Variable(torch.zeros(steps))
+    if cuda:
+      outputs = outputs.cuda()
     for i in range(steps):
         if force or i == 0:
             input = inputs[i]
@@ -30,7 +32,10 @@ class LSTM(nn.Module):
     return outputs, hidden
 
 
-  def init_hidden(self):
-    weight = next(self.parameters()).data
-    return (Variable(torch.zeros(1, 1, self.hiddensize)),
+  def init_hidden(self, cuda):
+    hidden = (Variable(torch.zeros(1, 1, self.hiddensize)),
       Variable(torch.zeros(1, 1, self.hiddensize)))
+    if cuda:
+      return (hidden[0].cuda(), hidden[0].cuda())
+    else:
+      return hidden

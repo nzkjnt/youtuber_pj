@@ -6,17 +6,19 @@ import numpy as np
 import torch
 import torch.nn as nn
 from torch.autograd import Variable
+from torch import optim
 
 import model_rnn
 
 parser = argparse.ArgumentParser(description='PyTorch Wikitext-2 RNN/LSTM Language Model')
 parser.add_argument('--epochs', type=int, default=50)
 parser.add_argument('--clip', type=float, default=0.25, help='gradient clipping')
-parser.add_argument('--lr', type=float, default=20, help='initial learning rate')
+parser.add_argument('--lr', type=float, default=0.2, help='initial learning rate')
 parser.add_argument('--batch_size', type=int, default=1, metavar='N', help='batch size')
 parser.add_argument('--bptt', type=int, default=35, help='sequence length')
 parser.add_argument('--save', type=str,  default='model.pth', help='path to save the final model')
-parser.add_argument('--cuda', action='store_true', help='use CUDA')
+parser.add_argument('--cuda', type=bool, default=False, help='use CUDA')
+parser.add_argument('--seed', type=int, default=1, metavar='S', help='random seed (default: 1)')
 args = parser.parse_args()
 
 if torch.cuda.is_available():
@@ -43,15 +45,16 @@ val_data = torch.from_numpy(val_data).float()
 
 # Build the model
 model = model_rnn.LSTM(len(vocab), train_data[0].shape[0]-1)
-if args.cuda:
-    model.cuda()
-
-# criterion = nn.CrossEntropyLoss()
 criterion = nn.MSELoss()
+optimizer = optim.SGD(model.parameters(), args.lr)
+if args.cuda:
+   print("cuda!")
+   model =  model.cuda()
 
 # Training code
 def repackage_hidden(h):
     """Wraps hidden states in new Variables, to detach them from their history."""
+
     if type(h) == Variable:
         return Variable(h.data)
     else:
@@ -61,12 +64,14 @@ def evaluate(data_source):
     # Turn on evaluation mode which disables dropout.
     model.eval()
     total_loss = 0
-    ntokens = len(vocab)
-    hidden = model.init_hidden()
+    hidden = model.init_hidden(args.cuda)
     for i in range(0, data_source.size(0) - 1, args.bptt):
         data = Variable(train_data[i][:-1:])
         targets = Variable(train_data[i][1:])
-        output, hidden = model(data, hidden)
+	if args.cuda:
+          data = data.cuda()
+          targets = targets.cuda()
+        output, hidden = model(data, hidden, cuda=args.cuda)
         total_loss += len(data) * criterion(output, targets).data
         hidden = repackage_hidden(hidden)
     return total_loss[0] / len(data_source)
@@ -76,17 +81,22 @@ def train():
     # Turn on training mode which enables dropout.
     model.train()
     start_time = time.time()
-    hidden = model.init_hidden()
+    hidden = model.init_hidden(args.cuda)
     for i in range(train_data.size(0)):
-        data = Variable(train_data[i][:-1:])
+        data = Variable(train_data[i][:-1])
         targets = Variable(train_data[i][1:])
+        if args.cuda:
+          data = data.cuda()
+          targets = targets.cuda()
         # Starting each batch, we detach the hidden state from how it was previously produced.
         # If we didn't, the model would try backpropagating all the way to start of the dataset.
         hidden = repackage_hidden(hidden)
-        model.zero_grad()
-        output, hidden = model(data, hidden)
+        optimizer.zero_grad()
+        # model.zero_grad()
+        output, hidden = model(data, hidden, cuda=args.cuda)
         loss = criterion(output, targets)
         loss.backward()
+        optimizer.step()
 
         # `clip_grad_norm` helps prevent the exploding gradient problem in RNNs / LSTMs.
         torch.nn.utils.clip_grad_norm(model.parameters(), args.clip)
