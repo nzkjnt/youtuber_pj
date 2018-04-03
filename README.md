@@ -5,8 +5,8 @@
 
 ### 準備
 mecabのインストール
-'''
+```
 brew install mecab
 brew install mecab-ipadic
 pip install mecab-python
-'''
+```
