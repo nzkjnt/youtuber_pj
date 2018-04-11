@@ -4,11 +4,12 @@ import torch.nn as nn
 from torch.autograd import Variable
 
 class LSTM(nn.Module):
-  def __init__(self, n_vocab, n_unit):
+  def __init__(self, n_vocab, n_unit, n_layer):
     super(LSTM, self).__init__()
     self.hiddensize = n_unit
+    self.layersize = n_layer
 
-    self.rnn = nn.LSTM(1, n_unit, 1)
+    self.rnn = nn.LSTM(1, n_unit, n_layer)
     self.out = nn.Linear(n_unit, 1)
 
   def step(self, input, hidden=None):
@@ -33,8 +34,8 @@ class LSTM(nn.Module):
 
 
   def init_hidden(self, cuda):
-    hidden = (Variable(torch.zeros(1, 1, self.hiddensize)),
-      Variable(torch.zeros(1, 1, self.hiddensize)))
+    hidden = (Variable(torch.zeros(self.layersize, 1, self.hiddensize)),
+      Variable(torch.zeros(self.layersize, 1, self.hiddensize)))
     if cuda:
       return (hidden[0].cuda(), hidden[0].cuda())
     else:

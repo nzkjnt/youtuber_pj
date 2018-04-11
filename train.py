@@ -45,7 +45,8 @@ train_data = torch.from_numpy(train_data).float()
 val_data = torch.from_numpy(val_data).float()
 
 # Build the model
-model = model_rnn.LSTM(len(vocab), train_data[0].shape[0]-1)
+# model = model_rnn.LSTM(len(vocab), train_data[0].shape[0]-1, 1)
+model = model_rnn.LSTM(len(vocab), 128, 1)
 criterion = nn.MSELoss()
 optimizer = optim.SGD(model.parameters(), args.lr)
 if args.cuda:
