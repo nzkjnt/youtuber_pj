@@ -2,6 +2,7 @@
 import argparse
 import pickle
 import time
+import math
 from tqdm import tqdm
 import numpy as np
 import torch
@@ -15,8 +16,7 @@ parser = argparse.ArgumentParser(description='PyTorch Wikitext-2 RNN/LSTM Langua
 parser.add_argument('--epochs', type=int, default=50)
 parser.add_argument('--clip', type=float, default=0.25, help='gradient clipping')
 parser.add_argument('--lr', type=float, default=0.02, help='initial learning rate')
-parser.add_argument('--batch_size', type=int, default=1, metavar='N', help='batch size')
-parser.add_argument('--bptt', type=int, default=35, help='sequence length')
+parser.add_argument('--bptt', type=int, default=32, help='sequence length')
 parser.add_argument('--save', type=str,  default='model.pth', help='path to save the final model')
 parser.add_argument('--cuda', type=bool, default=False, help='use CUDA')
 parser.add_argument('--seed', type=int, default=1, metavar='S', help='random seed (default: 1)')
@@ -30,27 +30,19 @@ if torch.cuda.is_available():
 
 # Load data
 vocab = pickle.load(open('data/vocab.pickle','r'))
-data = pickle.load(open('data/train_data.pickle', 'r'))
-train_data = np.empty((0, data[0].size), dtype="float32")
-val_data = np.empty((0, data[0].size), dtype="float32")
-count = 0
-for i in range(data.shape[0]):
-  if count%10 == 0:
-    val_data = np.append(val_data, np.array([data[i]]), axis=0)
-  else:
-    train_data = np.append(train_data, np.array([data[i]]), axis=0)
-  count = count+1
-
-train_data = torch.from_numpy(train_data).float()
-val_data = torch.from_numpy(val_data).float()
+train_data = pickle.load(open('data/train_data.pickle', 'r'))
+val_data = pickle.load(open('data/val_data.pickle', 'r'))
+train_data = torch.LongTensor(train_data)
+val_data = torch.LongTensor(val_data)
 
 # Build the model
 # model = model_rnn.LSTM(len(vocab), train_data[0].shape[0]-1, 1)
-model = model_rnn.LSTM(len(vocab), 128, 1)
-criterion = nn.MSELoss()
+model = model_rnn.LSTM(32, len(vocab)-1, 128, 1)
+# criterion = nn.MSELoss()
+criterion = nn.NLLLoss()
 optimizer = optim.SGD(model.parameters(), args.lr)
 if args.cuda:
-   model =  model.cuda()
+    model =  model.cuda()
 
 # Training code
 def repackage_hidden(h):
@@ -61,17 +53,23 @@ def repackage_hidden(h):
     else:
         return tuple(repackage_hidden(v) for v in h)
 
+def get_batch(source, i, evaluation=False):
+    seq_len = min(args.bptt, len(source) - 1 - i)
+    data = Variable(source[i:i+seq_len], volatile=evaluation)
+    target = Variable(source[i+1:i+1+seq_len].view(-1))
+    return data, target
+
+
 def evaluate(data_source):
     # Turn on evaluation mode which disables dropout.
     model.eval()
     total_loss = 0
     hidden = model.init_hidden(args.cuda)
     for i in range(0, data_source.size(0) - 1, args.bptt):
-        data = Variable(train_data[i][:-1:])
-        targets = Variable(train_data[i][1:])
-	if args.cuda:
-          data = data.cuda()
-          targets = targets.cuda()
+        data, targets = get_batch(data_source, i, evaluation=True)
+        if args.cuda:
+            data = data.cuda()
+            targets = targets.cuda()
         output, hidden = model(data, hidden, cuda=args.cuda)
         total_loss += criterion(output, targets).data
         hidden = repackage_hidden(hidden)
@@ -83,12 +81,14 @@ def train():
     model.train()
     start_time = time.time()
     hidden = model.init_hidden(args.cuda)
-    for i in tqdm(range(train_data.size(0))):
-        data = Variable(train_data[i][:-1])
-        targets = Variable(train_data[i][1:])
+    # for i in tqdm(range(train_data.size(0))):
+    for batch, i in enumerate(tqdm(range(0, train_data.size(0) - 1, args.bptt))):
+        data, targets = get_batch(train_data, i)
+        if len(data) != args.bptt:
+            break
         if args.cuda:
-          data = data.cuda()
-          targets = targets.cuda()
+            data = data.cuda()
+            targets = targets.cuda()
         # Starting each batch, we detach the hidden state from how it was previously produced.
         # If we didn't, the model would try backpropagating all the way to start of the dataset.
         hidden = repackage_hidden(hidden)
