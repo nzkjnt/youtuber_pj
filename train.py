@@ -13,6 +13,9 @@ from torch import optim
 import model_rnn
 
 parser = argparse.ArgumentParser(description='PyTorch Wikitext-2 RNN/LSTM Language Model')
+parser.add_argument('--unit', type=int, default=128, help='the number of lstm unit')
+parser.add_argument('--layer', type=int, default=2, help='the number of layer')
+parser.add_argument('--embed', type=int, default=32, help='embedding dimension')
 parser.add_argument('--epochs', type=int, default=50)
 parser.add_argument('--clip', type=float, default=0.25, help='gradient clipping')
 parser.add_argument('--lr', type=float, default=0.02, help='initial learning rate')
@@ -37,7 +40,7 @@ val_data = torch.LongTensor(val_data)
 
 # Build the model
 # model = model_rnn.LSTM(len(vocab), train_data[0].shape[0]-1, 1)
-model = model_rnn.LSTM(32, len(vocab)-1, 128, 1)
+model = model_rnn.LSTM(args.embed, len(vocab)-1, args.unit, args.layer)
 # criterion = nn.MSELoss()
 criterion = nn.NLLLoss()
 optimizer = optim.SGD(model.parameters(), args.lr)
@@ -120,7 +123,7 @@ try:
         print('-' * 89)
         # Save the model if the validation loss is the best we've seen so far.
         if not best_val_loss or val_loss < best_val_loss:
-            with open(args.save, 'wb') as f:
+            with open(str(args.embed) + '_' +  str(args.unit) + '_' + str(args.layer) + '.pth', 'wb') as f:
                 torch.save(model, f)
             best_val_loss = val_loss
         else:
