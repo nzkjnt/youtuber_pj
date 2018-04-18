@@ -7,8 +7,8 @@ import codecs
 import re
 
 # テキストファイルを行ごとのリストとして読み込み
-# input_pickle = '../getMovie/youtuber.pickle'
-input_pickle = '../getMovie/test.pickle'
+input_pickle = '../getMovie/youtuber.pickle'
+# input_pickle = '../getMovie/test.pickle'
 with open(input_pickle, "r") as f:
     titles = pickle.load(f)
 
