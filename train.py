@@ -3,6 +3,8 @@ import argparse
 import pickle
 import time
 import math
+import json
+import collections as cl
 from tqdm import tqdm
 import numpy as np
 import torch
@@ -112,13 +114,17 @@ lr = args.lr
 best_val_loss = None
 
 # At any point you can hit Ctrl + C to break out of training early.
+log = {"unit": args.unit, "layer": args.layer, "embed": args.embed, "loss": []}
+loss_log = []
 try:
     for epoch in range(1, args.epochs+1):
         epoch_start_time = time.time()
         train()
         val_loss = evaluate(val_data)
+        loss_log.append(val_loss)
+        log["loss"] = loss_log
         print('-' * 89)
-        print('| end of epoch {:3d} | time: {:5.2f}s | valid loss {:5.2f} | '
+        print('| end of epoch {:3d} | time: {:2.5f}s | valid loss {:2.5f} | '
             .format(epoch, (time.time() - epoch_start_time), val_loss))
         print('-' * 89)
         # Save the model if the validation loss is the best we've seen so far.
@@ -129,6 +135,8 @@ try:
         else:
             # Anneal the learning rate if no improvement has been seen in the validation dataset.
             lr /= 4.0
+        with open(str(args.embed) + '_' +  str(args.unit) + '_' + str(args.layer) + '.json', 'wb') as f:
+            json.dump(log, f)
 except KeyboardInterrupt:
     print('-' * 89)
     print('Exiting from training early')

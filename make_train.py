@@ -29,7 +29,7 @@ vocab["<EOS>"] = 1
 dataset = []
 testset = []
 title_count = 0
-for i,words_by_title in enumerate(words_by_titles):
+for i, words_by_title in enumerate(words_by_titles):
     title_count = title_count+1
     for word in words_by_title:
         if word not in vocab:
