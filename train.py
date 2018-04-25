@@ -45,8 +45,6 @@ val_data = torch.LongTensor(val_data)
 model = model_rnn.LSTM(args.embed, len(vocab)-1, args.unit, args.layer)
 criterion = nn.NLLLoss()
 optimizer = optim.SGD(model.parameters(), args.lr)
-if args.cuda:
-    model =  model.cuda()
 
 # Training code
 def repackage_hidden(h):
@@ -117,6 +115,8 @@ log = {"unit": args.unit, "layer": args.layer, "embed": args.embed, "loss": []}
 loss_log = []
 try:
     for epoch in range(1, args.epochs+1):
+        if args.cuda:
+            model =  model.cuda()
         epoch_start_time = time.time()
         train()
         val_loss = evaluate(val_data)
