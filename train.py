@@ -112,7 +112,7 @@ lr = args.lr
 best_val_loss = None
 
 # At any point you can hit Ctrl + C to break out of training early.
-setting = str(args.embed) + '_' +  str(args.unit) + '_' + str(args.layer)
+setting = str(args.embed) + '_' +  str(args.unit) + '_' + str(args.layer) + '_minibatch' + str(args.bptt)
 log = {"unit": args.unit, "layer": args.layer, "embed": args.embed, "loss": []}
 loss_log = []
 try:
