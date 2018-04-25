@@ -112,6 +112,7 @@ lr = args.lr
 best_val_loss = None
 
 # At any point you can hit Ctrl + C to break out of training early.
+setting = str(args.embed) + '_' +  str(args.unit) + '_' + str(args.layer)
 log = {"unit": args.unit, "layer": args.layer, "embed": args.embed, "loss": []}
 loss_log = []
 try:
@@ -127,14 +128,18 @@ try:
         print('-' * 89)
         # Save the model if the validation loss is the best we've seen so far.
         if not best_val_loss or val_loss < best_val_loss:
-            with open(str(args.embed) + '_' +  str(args.unit) + '_' + str(args.layer) + '.pth', 'wb') as f:
-                torch.save(model, f)
+            torch.save(model.cpu(), open(setting + '.pth', 'wb'))
             best_val_loss = val_loss
         else:
             # Anneal the learning rate if no improvement has been seen in the validation dataset.
             lr /= 4.0
-        with open(str(args.embed) + '_' +  str(args.unit) + '_' + str(args.layer) + '.json', 'wb') as f:
-            json.dump(log, f)
+        
+        # 10epochごとに保存
+        if epoch%10 == 0:
+            torch.save(model.cpu(), open(setting + "epoch" + str(epoch) + ".pth", "wb"))
+
+        # lossを保存
+        json.dump(log, open(setting + '.json', 'wb'))
 except KeyboardInterrupt:
     print('-' * 89)
     print('Exiting from training early')
