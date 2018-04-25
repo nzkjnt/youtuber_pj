@@ -19,7 +19,7 @@ class LSTM(nn.Module):
   def step(self, input, hidden=None):
     output, hidden = self.rnn(input.view(1, 1, -1), hidden)
     output = self.out(output.squeeze(1))
-    output = F.softmax(output)
+    output = F.log_softmax(output)
     return output, hidden
 
   def forward(self, inputs, hidden=None, cuda=False):

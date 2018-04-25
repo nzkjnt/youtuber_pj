@@ -1,5 +1,7 @@
 # coding:utf-8
+import math
 import pickle
+import numpy as np
 import torch
 from torch.autograd import Variable
 
@@ -7,13 +9,14 @@ from torch.autograd import Variable
 # 確率分布にしたがって，確率的に次の単語を出力
 def next_word(model, hidden, word, max=False):
     output, hidden = model(Variable(torch.LongTensor([word])), hidden, False)
-    output = output.data
+    output = output.data.numpy()
     if max:
-        v, idx = torch.max(output, 1)
+        idx = np.argmax(output)
     else:
+        output = torch.FloatTensor([math.exp(x) for x in output[0]])
         idx = torch.multinomial(output, 1)[0]
 
-    return (idx[0], hidden)
+    return (idx, hidden)
 
 
 # vocabのキーと値を入れ替えたdictを作成
