@@ -19,23 +19,18 @@ class LSTM(nn.Module):
   def step(self, input, hidden=None):
     output, hidden = self.rnn(input.view(1, 1, -1), hidden)
     output = self.out(output.squeeze(1))
-    output = F.log_softmax(output)
+    output = F.softmax(output)
     return output, hidden
 
-  def forward(self, inputs, hidden=None, force=True, steps=0, cuda=False):
-    if force or steps == 0:
-      steps = len(inputs)
-    outputs = Variable(torch.zeros(steps, self.vocab))
+  def forward(self, inputs, hidden=None, cuda=False):
+    outputs = Variable(torch.zeros(len(inputs), self.vocab))
     if cuda:
       outputs = outputs.cuda()
     embeds = self.embeddings(inputs)
-    for i in range(steps):
-      if force or i == 0:
-        input = embeds[i]
-      else:
-        input = output
+    for i, input in enumerate(embeds):
       output, hidden = self.step(input, hidden)
       outputs[i] = output
+      
     return outputs, hidden
 
 

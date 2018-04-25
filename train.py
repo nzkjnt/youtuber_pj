@@ -43,7 +43,6 @@ val_data = torch.LongTensor(val_data)
 # Build the model
 # model = model_rnn.LSTM(len(vocab), train_data[0].shape[0]-1, 1)
 model = model_rnn.LSTM(args.embed, len(vocab)-1, args.unit, args.layer)
-# criterion = nn.MSELoss()
 criterion = nn.NLLLoss()
 optimizer = optim.SGD(model.parameters(), args.lr)
 if args.cuda:
@@ -94,11 +93,10 @@ def train():
         if args.cuda:
             data = data.cuda()
             targets = targets.cuda()
-        # Starting each batch, we detach the hidden state from how it was previously produced.
-        # If we didn't, the model would try backpropagating all the way to start of the dataset.
+
         hidden = repackage_hidden(hidden)
         optimizer.zero_grad()
-        # model.zero_grad()
+
         output, hidden = model(data, hidden, cuda=args.cuda)
         loss = criterion(output, targets)
         loss.backward()
