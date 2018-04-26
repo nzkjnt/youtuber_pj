@@ -128,7 +128,7 @@ try:
         print('-' * 89)
         # Save the model if the validation loss is the best we've seen so far.
         if not best_val_loss or val_loss < best_val_loss:
-            torch.save(model.cpu(), open(setting + '.pth', 'wb'))
+            torch.save(model.cpu(), open('./model/' + setting + '.pth', 'wb'))
             best_val_loss = val_loss
         else:
             # Anneal the learning rate if no improvement has been seen in the validation dataset.
@@ -136,10 +136,10 @@ try:
         
         # 10epochごとに保存
         if epoch%10 == 0:
-            torch.save(model.cpu(), open(setting + "epoch" + str(epoch) + ".pth", "wb"))
+            torch.save(model.cpu(), open('./model/' + setting + "_epoch" + str(epoch) + ".pth", "wb"))
 
         # lossを保存
-        json.dump(log, open(setting + '.json', 'wb'))
+        json.dump(log, open('./loss/' + setting + '.json', 'wb'))
 except KeyboardInterrupt:
     print('-' * 89)
     print('Exiting from training early')

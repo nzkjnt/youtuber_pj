@@ -26,20 +26,21 @@ for key, value in vocab.items():
     rvocab[value] = key
 
 # 学習済みモデルを展開
-model = torch.load("cpu_64_128_2.pth")
+model = torch.load("model/64_128_1_minibatch128.pth")
 
 # タイトル生成
 for _ in range(10):
     hidden = model.init_hidden(False)
 
-    result = [0]
+    result = []
     next = 0    # 最初の単語は<BOS>
     while next!=1:
-        next, hidden = next_word(model, hidden, next)
+        next, hidden = next_word(model, hidden, next, True)
+        # next, hidden = next_word(model, hidden, next)
         result.append(next)
 
     output = ""
-    for idx in result:
+    for idx in result[:-1]:
         output += rvocab[idx]
 
     print(output)
