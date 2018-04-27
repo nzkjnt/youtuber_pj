@@ -13,6 +13,7 @@ with open(input_pickle, "r") as f:
     titles = pickle.load(f)
 
 titles = [ x.encode("utf-8") for x in titles]
+print("title num:", len(titles))
 
 # 行ごとに形態素に分解
 m = MeCab.Tagger ("-O wakati")
@@ -53,8 +54,8 @@ import os
 if not os.path.exists("data"):
     os.mkdir("data")
 
-print('line num:', len(dataset))
-print('line num:', len(testset))
+print('dataset len:', len(dataset))
+print('testset len:', len(testset))
 # print('line_max_length:', max_length)
 print('vocab size:', len(vocab))
 pickle.dump(vocab, open('data/vocab.pickle', 'wb'))

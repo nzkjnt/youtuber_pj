@@ -34,9 +34,10 @@ for _ in range(10):
 
     result = []
     next = 0    # 最初の単語は<BOS>
+    MAX_PROB = False # 確率最大の単語を取り出す
     while next!=1:
-        next, hidden = next_word(model, hidden, next, True)
-        # next, hidden = next_word(model, hidden, next)
+        next, hidden = next_word(model, hidden, next, MAX_PROB)
+        # MAX_PROB = not MAX_PROB
         result.append(next)
 
     output = ""
