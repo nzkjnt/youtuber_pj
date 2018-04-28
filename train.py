@@ -82,6 +82,7 @@ def train():
     # Turn on training mode which enables dropout.
     model.train()
     start_time = time.time()
+    total_loss = 0
     hidden = model.init_hidden(args.cuda)
     # for i in tqdm(range(train_data.size(0))):
     for batch, i in enumerate(tqdm(range(0, train_data.size(0) - 1, args.bptt))):
@@ -97,6 +98,7 @@ def train():
 
         output, hidden = model(data, hidden, cuda=args.cuda)
         loss = criterion(output, targets)
+        total_loss += loss
         loss.backward()
         optimizer.step()
 
@@ -105,23 +107,28 @@ def train():
         for p in model.parameters():
             p.data.add_(-lr, p.grad.data)
 
+    return total_loss.data[0] / len(train_data)
+
 # Loop over epochs.
 lr = args.lr
 best_val_loss = None
 
 # At any point you can hit Ctrl + C to break out of training early.
-setting = str(args.embed) + '_' +  str(args.unit) + '_' + str(args.layer) + '_minibatch' + str(args.bptt)
-log = {"unit": args.unit, "layer": args.layer, "embed": args.embed, "loss": []}
-loss_log = []
+setting = str(args.embed) + '_' +  str(args.unit) + '_' + str(args.layer) + '_' + str(args.lr) + '_minibatch' + str(args.bptt)
+log = {"unit": args.unit, "layer": args.layer, "embed": args.embed, "testloss": [], "trainloss": []}
+train_loss = []
+test_loss = []
 try:
     for epoch in range(1, args.epochs+1):
         if args.cuda:
             model =  model.cuda()
         epoch_start_time = time.time()
-        train()
+        loss = train()
         val_loss = evaluate(val_data)
-        loss_log.append(val_loss)
-        log["loss"] = loss_log
+        test_loss.append(val_loss)
+        train_loss.append(loss)
+        log["testloss"] = test_loss
+        log["trainloss"] = train_loss
         print('-' * 89)
         print('| end of epoch {:3d} | time: {:2.5f}s | valid loss {:2.5f} | '
             .format(epoch, (time.time() - epoch_start_time), val_loss))

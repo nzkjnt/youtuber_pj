@@ -26,7 +26,7 @@ for key, value in vocab.items():
     rvocab[value] = key
 
 # 学習済みモデルを展開
-model = torch.load("model/64_128_1_minibatch128.pth")
+model = torch.load("model/64_128_1_0.2_minibatch128_epoch90.pth")
 
 # タイトル生成
 for _ in range(10):
@@ -38,6 +38,7 @@ for _ in range(10):
     while next!=1:
         next, hidden = next_word(model, hidden, next, MAX_PROB)
         # MAX_PROB = not MAX_PROB
+        # print(rvocab[next])
         result.append(next)
 
     output = ""
