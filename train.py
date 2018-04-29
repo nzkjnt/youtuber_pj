@@ -69,43 +69,34 @@ def get_batch(source, i, evaluation=False):
     return data, target
 
 
-def evaluate(data_source):
+def evaluate(input, target, hidden):
     # Turn on evaluation mode which disables dropout.
     model.eval()
-    total_loss = 0
-    hidden = model.init_hidden()
-    for i in range(0, data_source.size(0) - 1, args.bptt):
-        data, targets = get_batch(data_source, i, evaluation=True)
-        output, hidden = model(data, hidden)
-        total_loss += criterion(output, targets).data
-        hidden = repackage_hidden(hidden)
-    return total_loss[0] / len(data_source)
+    hidden = repackage_hidden(hidden)
+ 
+    output, hidden = model(data, hidden)
+    loss = criterion(output, targets).data
+    
+    return loss.data[0], hidden
 
 
-def train():
+def train(input, target, hidden):
     # Turn on training mode which enables dropout.
     model.train()
-    start_time = time.time()
-    total_loss = 0
-    hidden = model.init_hidden()
-    # for i in tqdm(range(train_data.size(0))):
-    for batch, i in enumerate(tqdm(range(0, train_data.size(0) - 1, args.bptt))):
-        data, targets = get_batch(train_data, i)
-        hidden = repackage_hidden(hidden)
-        optimizer.zero_grad()
+    hidden = repackage_hidden(hidden)
+    optimizer.zero_grad()
 
-        output, hidden = model(data, hidden)
-        loss = criterion(output, targets)
-        total_loss += loss
-        loss.backward()
-        optimizer.step()
+    output, hidden = model(input, hidden)
+    loss = criterion(output, target)
+    loss.backward()
+    optimizer.step()
 
-        # `clip_grad_norm` helps prevent the exploding gradient problem in RNNs / LSTMs.
-        torch.nn.utils.clip_grad_norm(model.parameters(), args.clip)
-        for p in model.parameters():
-            p.data.add_(-lr, p.grad.data)
+    # `clip_grad_norm` helps prevent the exploding gradient problem in RNNs / LSTMs.
+    torch.nn.utils.clip_grad_norm(model.parameters(), args.clip)
+    for p in model.parameters():
+        p.data.add_(-lr, p.grad.data)
 
-    return total_loss.data[0] / len(train_data)
+    return loss.data[0], hidden
 
 # 保存用ディレクトリ作成
 if not os.path.exists('./model'):
@@ -125,8 +116,25 @@ test_loss = []
 try:
     for epoch in range(1, args.epochs+1):
         epoch_start_time = time.time()
-        epochloss = train()
-        val_loss = evaluate(val_data)
+
+        # train
+        epoch_loss = 0
+        hidden = model.init_hidden()
+        for batch, i in enumerate(tqdm(range(0, train_data.size(0) - 1, args.bptt))):
+            data, targets = get_batch(train_data, i)
+            loss, hidden = train(data, targets, hidden)
+            epoch_loss += loss
+        epoch_loss /= len(train_data)
+
+        # evaluation
+        val_loss = 0
+        hidden = model.init_hidden()
+        for i in range(0, val_data.size(0) - 1, args.bptt):
+            data, targets = get_batch(val_data, i, evaluation=True)
+            loss, hidden = evaluate(data, targets, hidden)
+            val_loss += loss
+        val_loss /= len(val_data)
+
         test_loss.append(val_loss)
         train_loss.append(epochloss)
         log["testloss"] = test_loss
