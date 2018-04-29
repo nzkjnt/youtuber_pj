@@ -121,9 +121,9 @@ try:
         epoch_loss = 0
         hidden = model.init_hidden()
         for batch, i in enumerate(tqdm(range(0, train_data.size(0) - 1, args.bptt))):
+            data, targets = get_batch(train_data, i)
             if len(data) != args.bptt:
                 break
-            data, targets = get_batch(train_data, i)
             loss, hidden = train(data, targets, hidden)
             epoch_loss += loss
         epoch_loss /= len(train_data)
