@@ -1,12 +1,13 @@
 # coding: utf-8
+import os
 import argparse
 import pickle
 import time
 import math
 import json
-import collections as cl
 from tqdm import tqdm
 import numpy as np
+
 import torch
 import torch.nn as nn
 from torch.autograd import Variable
@@ -23,7 +24,7 @@ parser.add_argument('--clip', type=float, default=0.25, help='gradient clipping'
 parser.add_argument('--lr', type=float, default=0.02, help='initial learning rate')
 parser.add_argument('--bptt', type=int, default=32, help='sequence length')
 parser.add_argument('--save', type=str,  default='model.pth', help='path to save the final model')
-parser.add_argument('--cuda', type=bool, default=False, help='use CUDA')
+parser.add_argument('--cuda', action='store_true', help='use CUDA')
 parser.add_argument('--seed', type=int, default=1, metavar='S', help='random seed (default: 1)')
 args = parser.parse_args()
 
@@ -109,6 +110,12 @@ def train():
 
     return total_loss.data[0] / len(train_data)
 
+# 保存用ディレクトリ作成
+if not os.path.exists('./models'):
+    os.mkdir('./models')
+if not os.path.exists('./loss'):
+    os.mkdir('./loss')
+
 # Loop over epochs.
 lr = args.lr
 best_val_loss = None
@@ -120,15 +127,14 @@ train_loss = []
 test_loss = []
 try:
     for epoch in range(1, args.epochs+1):
-        if args.cuda:
-            model =  model.cuda()
         epoch_start_time = time.time()
-        loss = train()
+        epochloss = train()
         val_loss = evaluate(val_data)
         test_loss.append(val_loss)
-        train_loss.append(loss)
+        train_loss.append(epochloss)
         log["testloss"] = test_loss
         log["trainloss"] = train_loss
+
         print('-' * 89)
         print('| end of epoch {:3d} | time: {:2.5f}s | valid loss {:2.5f} | '
             .format(epoch, (time.time() - epoch_start_time), val_loss))
@@ -136,6 +142,7 @@ try:
         # Save the model if the validation loss is the best we've seen so far.
         if not best_val_loss or val_loss < best_val_loss:
             torch.save(model.cpu(), open('./model/' + setting + '.pth', 'wb'))
+            model =  model.cuda()
             best_val_loss = val_loss
         else:
             # Anneal the learning rate if no improvement has been seen in the validation dataset.
@@ -144,6 +151,7 @@ try:
         # 10epochごとに保存
         if epoch%10 == 0:
             torch.save(model.cpu(), open('./model/' + setting + "_epoch" + str(epoch) + ".pth", "wb"))
+            model =  model.cuda()
 
         # lossを保存
         json.dump(log, open('./loss/' + setting + '.json', 'wb'))
