@@ -6,7 +6,6 @@ import time
 import math
 import json
 from tqdm import tqdm
-import numpy as np
 
 import torch
 import torch.nn as nn
@@ -56,7 +55,6 @@ if args.cuda:
 # Training code
 def repackage_hidden(h):
     """Wraps hidden states in new Variables, to detach them from their history."""
-
     if type(h) == Variable:
         return Variable(h.data)
     else:
@@ -68,23 +66,19 @@ def get_batch(source, i, evaluation=False):
     target = Variable(source[i+1:i+1+seq_len].view(-1))
     return data, target
 
-
 def evaluate(input, target, hidden):
     # Turn on evaluation mode which disables dropout.
     model.eval()
     hidden = repackage_hidden(hidden)
- 
     output, hidden = model(data, hidden)
     loss = criterion(output, targets)
     
     return loss.data[0], hidden
 
-
 def train(input, target, hidden):
     # Turn on training mode which enables dropout.
     model.train()
     hidden = repackage_hidden(hidden)
-
     optimizer.zero_grad()
     output, hidden = model(input, hidden)
     loss = criterion(output, target)
@@ -97,6 +91,7 @@ def train(input, target, hidden):
         p.data.add_(-lr, p.grad.data)
 
     return loss.data[0], hidden
+
 
 # 保存用ディレクトリ作成
 if not os.path.exists('./model'):
@@ -116,6 +111,8 @@ test_loss = []
 try:
     for epoch in range(1, args.epochs+1):
         epoch_start_time = time.time()
+        if args.cuda:
+            model =  model.cuda(args.g)
 
         # train
         epoch_loss = 0
@@ -149,7 +146,6 @@ try:
         # Save the model if the validation loss is the best we've seen so far.
         if not best_val_loss or val_loss < best_val_loss:
             torch.save(model.cpu(), open('./model/' + setting + '.pth', 'wb'))
-            model =  model.cuda(args.g)
             best_val_loss = val_loss
         else:
             # Anneal the learning rate if no improvement has been seen in the validation dataset.
@@ -158,7 +154,6 @@ try:
         # 10epochごとに保存
         if epoch%10 == 0:
             torch.save(model.cpu(), open('./model/' + setting + "_epoch" + str(epoch) + ".pth", "wb"))
-            model =  model.cuda(args.g)
 
         # lossを保存
         json.dump(log, open('./loss/' + setting + '.json', 'wb'))
