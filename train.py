@@ -75,7 +75,7 @@ def evaluate(input, target, hidden):
     hidden = repackage_hidden(hidden)
  
     output, hidden = model(data, hidden)
-    loss = criterion(output, targets).data
+    loss = criterion(output, targets)
     
     return loss.data[0], hidden
 
@@ -84,8 +84,8 @@ def train(input, target, hidden):
     # Turn on training mode which enables dropout.
     model.train()
     hidden = repackage_hidden(hidden)
-    optimizer.zero_grad()
 
+    optimizer.zero_grad()
     output, hidden = model(input, hidden)
     loss = criterion(output, target)
     loss.backward()
@@ -121,6 +121,8 @@ try:
         epoch_loss = 0
         hidden = model.init_hidden()
         for batch, i in enumerate(tqdm(range(0, train_data.size(0) - 1, args.bptt))):
+            if len(data) != args.bptt:
+                break
             data, targets = get_batch(train_data, i)
             loss, hidden = train(data, targets, hidden)
             epoch_loss += loss
@@ -136,7 +138,7 @@ try:
         val_loss /= len(val_data)
 
         test_loss.append(val_loss)
-        train_loss.append(epochloss)
+        train_loss.append(epoch_loss)
         log["testloss"] = test_loss
         log["trainloss"] = train_loss
 
