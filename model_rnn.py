@@ -5,11 +5,13 @@ import torch.nn.functional as F
 from torch.autograd import Variable
 
 class LSTM(nn.Module):
-    def __init__(self, emb_dim, n_vocab, n_unit, n_layer):
+    def __init__(self, emb_dim, n_vocab, n_unit, n_layer, gpu, gpuid):
         super(LSTM, self).__init__()
         self.hiddensize = n_unit
         self.layersize = n_layer
         self.vocab = n_vocab
+        self.gpu = gpu
+        self.gpuid = gpuid
 
         self.embeddings = nn.Embedding(n_vocab, emb_dim)
 
@@ -22,22 +24,21 @@ class LSTM(nn.Module):
         output = F.log_softmax(output)
         return output, hidden
 
-    def forward(self, inputs, hidden=None, cuda=False):
+    def forward(self, inputs, hidden=None):
         outputs = Variable(torch.zeros(len(inputs), self.vocab))
-        if cuda:
+        if self.gpu:
             outputs = outputs.cuda()
+
         embeds = self.embeddings(inputs)
-        for i, input in enumerate(embeds):
-            output, hidden = self.step(input, hidden)
-            outputs[i] = output
-        
-        return outputs, hidden
+        output, hidden = self.rnn(embeds.view(len(embeds), 1, -1), hidden)
+        output = self.out(output.squeeze(1))
+        output = F.log_softmax(output)
+        return output, hidden
 
-
-    def init_hidden(self, cuda):
+    def init_hidden(self):
         hidden = (Variable(torch.zeros(self.layersize, 1, self.hiddensize)),
             Variable(torch.zeros(self.layersize, 1, self.hiddensize)))
-        if cuda:
+        if self.gpu:
             return (hidden[0].cuda(), hidden[0].cuda())
         else:
             return hidden

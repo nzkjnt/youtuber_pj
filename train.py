@@ -25,6 +25,7 @@ parser.add_argument('--lr', type=float, default=0.02, help='initial learning rat
 parser.add_argument('--bptt', type=int, default=32, help='sequence length')
 parser.add_argument('--save', type=str,  default='model.pth', help='path to save the final model')
 parser.add_argument('--cuda', action='store_true', help='use CUDA')
+parser.add_argument('--g', type=int, default=0, help='gpu id')
 parser.add_argument('--seed', type=int, default=1, metavar='S', help='random seed (default: 1)')
 args = parser.parse_args()
 
@@ -43,9 +44,14 @@ val_data = torch.LongTensor(val_data)
 
 # Build the model
 # model = model_rnn.LSTM(len(vocab), train_data[0].shape[0]-1, 1)
-model = model_rnn.LSTM(args.embed, len(vocab)-1, args.unit, args.layer)
+model = model_rnn.LSTM(args.embed, len(vocab)-1, args.unit, args.layer, args.cuda, args.g)
 criterion = nn.NLLLoss()
 optimizer = optim.SGD(model.parameters(), args.lr)
+
+if args.cuda:
+    model =  model.cuda(args.g)
+    train_data = train_data.cuda(args.g)
+    val_data = val_data.cuda(args.g)
 
 # Training code
 def repackage_hidden(h):
@@ -67,13 +73,10 @@ def evaluate(data_source):
     # Turn on evaluation mode which disables dropout.
     model.eval()
     total_loss = 0
-    hidden = model.init_hidden(args.cuda)
+    hidden = model.init_hidden()
     for i in range(0, data_source.size(0) - 1, args.bptt):
         data, targets = get_batch(data_source, i, evaluation=True)
-        if args.cuda:
-            data = data.cuda()
-            targets = targets.cuda()
-        output, hidden = model(data, hidden, cuda=args.cuda)
+        output, hidden = model(data, hidden)
         total_loss += criterion(output, targets).data
         hidden = repackage_hidden(hidden)
     return total_loss[0] / len(data_source)
@@ -84,20 +87,14 @@ def train():
     model.train()
     start_time = time.time()
     total_loss = 0
-    hidden = model.init_hidden(args.cuda)
+    hidden = model.init_hidden()
     # for i in tqdm(range(train_data.size(0))):
     for batch, i in enumerate(tqdm(range(0, train_data.size(0) - 1, args.bptt))):
         data, targets = get_batch(train_data, i)
-        if len(data) != args.bptt:
-            break
-        if args.cuda:
-            data = data.cuda()
-            targets = targets.cuda()
-
         hidden = repackage_hidden(hidden)
         optimizer.zero_grad()
 
-        output, hidden = model(data, hidden, cuda=args.cuda)
+        output, hidden = model(data, hidden)
         loss = criterion(output, targets)
         total_loss += loss
         loss.backward()
@@ -111,8 +108,8 @@ def train():
     return total_loss.data[0] / len(train_data)
 
 # 保存用ディレクトリ作成
-if not os.path.exists('./models'):
-    os.mkdir('./models')
+if not os.path.exists('./model'):
+    os.mkdir('./model')
 if not os.path.exists('./loss'):
     os.mkdir('./loss')
 
@@ -142,7 +139,7 @@ try:
         # Save the model if the validation loss is the best we've seen so far.
         if not best_val_loss or val_loss < best_val_loss:
             torch.save(model.cpu(), open('./model/' + setting + '.pth', 'wb'))
-            model =  model.cuda()
+            model =  model.cuda(args.g)
             best_val_loss = val_loss
         else:
             # Anneal the learning rate if no improvement has been seen in the validation dataset.
@@ -151,7 +148,7 @@ try:
         # 10epochごとに保存
         if epoch%10 == 0:
             torch.save(model.cpu(), open('./model/' + setting + "_epoch" + str(epoch) + ".pth", "wb"))
-            model =  model.cuda()
+            model =  model.cuda(args.g)
 
         # lossを保存
         json.dump(log, open('./loss/' + setting + '.json', 'wb'))
