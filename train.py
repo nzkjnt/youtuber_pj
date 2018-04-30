@@ -15,7 +15,7 @@ from torch import optim
 import model_rnn
 
 parser = argparse.ArgumentParser(description='PyTorch Wikitext-2 RNN/LSTM Language Model')
-parser.add_argument('--unit', type=int, default=128, help='the number of lstm unit')
+parser.add_argument('--hidden', type=int, default=128, help='the number of lstm hidden state')
 parser.add_argument('--layer', type=int, default=2, help='the number of layer')
 parser.add_argument('--embed', type=int, default=32, help='embedding dimension')
 parser.add_argument('--epochs', type=int, default=50)
@@ -43,7 +43,7 @@ val_data = torch.LongTensor(val_data)
 
 # Build the model
 # model = model_rnn.LSTM(len(vocab), train_data[0].shape[0]-1, 1)
-model = model_rnn.LSTM(args.embed, len(vocab)-1, args.unit, args.layer, args.cuda, args.g)
+model = model_rnn.LSTM(args.embed, len(vocab)-1, args.hidden, args.layer, args.cuda, args.g)
 criterion = nn.NLLLoss()
 optimizer = optim.SGD(model.parameters(), args.lr)
 
@@ -104,8 +104,8 @@ lr = args.lr
 best_val_loss = None
 
 # At any point you can hit Ctrl + C to break out of training early.
-setting = str(args.embed) + '_' +  str(args.unit) + '_' + str(args.layer) + '_' + str(args.lr) + '_minibatch' + str(args.bptt)
-log = {"unit": args.unit, "layer": args.layer, "embed": args.embed, "testloss": [], "trainloss": []}
+setting = str(args.embed) + '_' +  str(args.hidden) + '_' + str(args.layer) + '_' + str(args.lr) + '_minibatch' + str(args.bptt)
+log = {"hidden": args.hidden, "layer": args.layer, "embed": args.embed, "testloss": [], "trainloss": []}
 train_loss = []
 test_loss = []
 try:
