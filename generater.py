@@ -8,7 +8,7 @@ from torch.autograd import Variable
 
 # 確率分布にしたがって，確率的に次の単語を出力
 def next_word(model, hidden, word, max=False):
-    output, hidden = model(Variable(torch.LongTensor([word])), hidden, False)
+    output, hidden = model(Variable(torch.LongTensor([word])), hidden)
     output = output.data.numpy()
     if max:
         idx = np.argmax(output)
@@ -26,11 +26,12 @@ for key, value in vocab.items():
     rvocab[value] = key
 
 # 学習済みモデルを展開
-model = torch.load("model/64_128_1_0.2_minibatch128_epoch90.pth")
+model = torch.load("model/128_128_1_0.2_minibatch256_epoch100.pth")
+model.gpu = False
 
 # タイトル生成
 for _ in range(10):
-    hidden = model.init_hidden(False)
+    hidden = model.init_hidden()
 
     result = []
     next = 0    # 最初の単語は<BOS>
