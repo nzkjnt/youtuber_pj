@@ -2,6 +2,8 @@
 ### 環境
 * python2.7.14
 * mecab-python
+* PyTorch 0.2.0_3
+* tqdm
 
 ### 準備
 mecabのインストール
